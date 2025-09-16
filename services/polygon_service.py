@@ -18,7 +18,6 @@ class PolygonService:
 
     def get_n_day_data(self, days, ticker):
         from_date = datetime.now() - timedelta(days)
-        self.client.get_last_trade('AAPL')
         agg = self.client.get_aggs(ticker, 1, "day", from_date, datetime.now())
         response = []
         for i in agg:

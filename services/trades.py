@@ -126,21 +126,24 @@ def run_portfolio(v, close, lookback_size=0) -> dict:
     pf = v.run_portfolio(close, 1000000, lookback_size)
 
     res = {}
-    if len(pf.plot_orders(column=pf.wrapper.columns[0]).to_dict()['data']) > 2:
-        order_dates = list(pf.plot_orders(column=pf.wrapper.columns[0]).to_dict()['data'][1]['x']) + \
-                      list(pf.plot_orders(column=pf.wrapper.columns[0]).to_dict()['data'][2]['x'])
-        order_dates.sort()
-        buy_order = list(pf.plot_orders(column=pf.wrapper.columns[0]).to_dict()['data'][1]['y'])
-        sell_order = list(pf.plot_orders(column=pf.wrapper.columns[0]).to_dict()['data'][2]['y'])
-        res['order_details'] = get_orders(order_dates, buy_order, sell_order)
-    elif len(pf.plot_orders(column=pf.wrapper.columns[0]).to_dict()['data']) == 2:
-        order_dates = list(pf.plot_orders(column=pf.wrapper.columns[0]).to_dict()['data'][0]['x'])
-        order_dates.sort()
-        buy_order = list(pf.plot_orders(column=pf.wrapper.columns[0]).to_dict()['data'][0]['y'])
-        sell_order = []
-        res['order_details'] = get_orders(order_dates, buy_order, sell_order)
-    else:
-        res['order_details'] = []
+    # if len(pf.plot_orders(column=pf.wrapper.columns[0]).to_dict()['data']) > 2:
+    #     pf.plot(column=pf.wrapper.columns[0]).show()
+    #     pf.plot_orders(column=pf.wrapper.columns[0]).show()
+    #     pf.plot_trades(column=pf.wrapper.columns[0]).show()
+    #     order_dates = list(pf.plot_orders(column=pf.wrapper.columns[0]).to_dict()['data'][1]['x']) + \
+    #                   list(pf.plot_orders(column=pf.wrapper.columns[0]).to_dict()['data'][2]['x'])
+    #     order_dates.sort()
+    #     buy_order = list(pf.plot_orders(column=pf.wrapper.columns[0]).to_dict()['data'][1]['y'])
+    #     sell_order = list(pf.plot_orders(column=pf.wrapper.columns[0]).to_dict()['data'][2]['y'])
+    #     res['order_details'] = get_orders(order_dates, buy_order, sell_order)
+    # elif len(pf.plot_orders(column=pf.wrapper.columns[0]).to_dict()['data']) == 2:
+    #     order_dates = list(pf.plot_orders(column=pf.wrapper.columns[0]).to_dict()['data'][0]['x'])
+    #     order_dates.sort()
+    #     buy_order = list(pf.plot_orders(column=pf.wrapper.columns[0]).to_dict()['data'][0]['y'])
+    #     sell_order = []
+    #     res['order_details'] = get_orders(order_dates, buy_order, sell_order)
+    # else:
+    #     res['order_details'] = []
 
     stats = v.get_max_stats()
     res['stats'] = json.loads(stats.to_json())
@@ -155,7 +158,7 @@ def run_portfolio(v, close, lookback_size=0) -> dict:
     res['stats']['End Value'] = f"{stats['End Value']:,.2f}"
     res['stats'].pop('Open Trade PnL')
     res['graph_data'] = pf.plot_trades(column=pf.wrapper.columns[0])
-    # res['graph_data'].show()
+    res['graph_data'].show()
 
     if res['graph_data']['layout']['shapes']:
         has_shapes = True
@@ -165,17 +168,17 @@ def run_portfolio(v, close, lookback_size=0) -> dict:
     res['graph_data'] = json.loads(res['graph_data'].to_json())
     res['graph_data']['data'][0]['line']['color'] = '#84cc16'
 
-    if has_shapes:
-        plot_strategy_line(res['graph_data'])
-        highlight_y0 = min(min(res['graph_data']['data'][0]['y']), min(res['graph_data']['data'][-1]['y']))
-        highlight_y1 = max(max(res['graph_data']['data'][0]['y']), max(res['graph_data']['data'][-1]['y']))
-
-        for i in res['graph_data']['layout']['shapes']:
-            i['fillcolor'] = "#84cc16" if i['fillcolor'] == 'green' else '#f43f5e'
-            i['y0'] = highlight_y0
-            i['y1'] = highlight_y1
+    # if has_shapes:
+    #     plot_strategy_line(res['graph_data'])
+    #     highlight_y0 = min(min(res['graph_data']['data'][0]['y']), min(res['graph_data']['data'][-1]['y']))
+    #     highlight_y1 = max(max(res['graph_data']['data'][0]['y']), max(res['graph_data']['data'][-1]['y']))
+    #
+    #     for i in res['graph_data']['layout']['shapes']:
+    #         i['fillcolor'] = "#84cc16" if i['fillcolor'] == 'green' else '#f43f5e'
+    #         i['y0'] = highlight_y0
+    #         i['y1'] = highlight_y1
     test = pio.from_json(json.dumps(res['graph_data']))
-    # test.show()
+    test.show()
 
     return res
 
@@ -200,7 +203,7 @@ def start_backtest(response, db, data, user_id):
     })
     backtest = backtest.dict()
     backtest.update({"user_id": user_id})
-    create_backtest(db, backtest)
+    # create_backtest(db, backtest)
     v.custom_indicator_backtester(response, close_list, high, low,
                                                        {
                                                            "buy": data.buy,

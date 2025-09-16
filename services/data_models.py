@@ -158,8 +158,8 @@ class data(BaseModel):
     sell: list
     buy_exp: str
     sell_exp: str
-    customized_buy_signal: Optional[List[CustomizedSignal]]
-    customized_sell_signal: Optional[List[CustomizedSignal]]
+    # customized_buy_signal: Optional[List[CustomizedSignal]]
+    # customized_sell_signal: Optional[List[CustomizedSignal]]
 
 
 class LiveStrategy(BaseModel):

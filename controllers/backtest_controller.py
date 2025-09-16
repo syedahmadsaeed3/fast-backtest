@@ -1,3 +1,4 @@
+import uuid
 from typing import List
 from controllers.auth_manager import JWTBearer
 from controllers.data_service_manager import get_data_service
@@ -197,7 +198,6 @@ async def save_strategy(strategy: StrategyGroup, db=Depends(get_supabase), user=
     return {"message": "backtest saved successfully"}
 
 
-
 @router.post("/live_run")
 async def run_live(data: LiveStrategy, db=Depends(get_supabase) , user=Depends(JWTBearer())):
     """
@@ -279,10 +279,7 @@ async def unsub_strategy(data: StrategySubscriptionRequest, db=Depends(get_supab
 
 
 @router.post("/backtest")
-async def backtest(data: data, db=Depends(get_supabase), user=Depends(JWTBearer())):
-    """
-    TODO: change super user logic after adding user auth
-    """
+async def backtest(data: data, db=Depends(get_supabase)):
     if not any(data.buy) or not any(data.sell):
         raise HTTPException(status_code=400, detail=f"error: Buy and Sell indicators cannot be empty")
     ticker = get_ticker(db, data.ticker)
@@ -295,56 +292,48 @@ async def backtest(data: data, db=Depends(get_supabase), user=Depends(JWTBearer(
             print(e)
             data_service = Yfinance()
 
-    customized_signal = False
-    if data.customized_buy_signal and data.customized_sell_signal:
-        customized_signal = True
-
     user_data = UserThread()
-    user_data.initialize_user(user.id)
-    response = data_service.get_1min_day_data(data.ticker,
-                                                       limit=data.limit + 183) if data.limit == 1 else data_service.get_n_day_data(
-        data.limit + 183, data.ticker)
-    response_without_lookback = data_service.get_1min_day_data(data.ticker,
-                                              limit=data.limit) if data.limit == 1 else data_service.get_n_day_data(
-        data.limit, data.ticker)
+    user_data.initialize_user("user.id")
+    response = data_service.get_n_day_data(data.limit + 183, data.ticker)
+    response_without_lookback = data_service.get_n_day_data(data.limit, data.ticker)
 
     lookback_size = len(response) - len(response_without_lookback)
     price_cache = PriceCache()
     if not price_cache.get_price(data.ticker):
         price_cache.set_price(data.ticker, response)
-    close, high, low, vbt = start_backtest(response, db, data, user.id)
+    close, high, low, vbt = start_backtest(response, db, data, str(uuid.uuid4()))
     dates = close.index.tolist()
     entries, exits = vbt.get_entries_and_exits()
-    if data.customized_buy_signal and data.customized_sell_signal:
-        buy_security_group = []
-        sell_security_group = []
-        for s in data.customized_buy_signal:
-            buy_security_group.append(get_security_group(db, s.security_group, user.id))
-        for s in data.customized_sell_signal:
-            sell_security_group.append(get_security_group(db, s.security_group, user.id))
-
-        # check if buy and sell security groups have more than 1 security group and if each security group has more than 1 security
-        normalize = (len(buy_security_group) > 1 or len(sell_security_group) > 1) or (len(
-            buy_security_group[0]) > 1 or len(sell_security_group[0]) > 1)
-
-
-        user_data.set_user_data_by_key(user.id, 'buy_security_group', buy_security_group)
-        user_data.set_user_data_by_key(user.id, 'sell_security_group', sell_security_group)
-        user_data.set_user_data_by_key(user.id, 'cash', 1000000)
-        customized_buy_signal, buy_keys, customized_sell_signal, sell_keys = customized_buy_sell_signal_for_backtest(
-            response, data)
-
-        cache_price_data(data_service, data.limit, data.resolution, buy_security_group)
-        cache_price_data(data_service, data.limit, data.resolution, sell_security_group)
-        init_cash, trades = get_trades(dates, customized_buy_signal, buy_keys, customized_sell_signal, sell_keys,
-                                       entries, exits, user.id, lookback_size)
-        stats = get_stats(trades)
-        normalized_close = normalize_prices((close[lookback_size:])) if normalize else close[lookback_size:]
-        graph = create_trades_graph(trades, vbt.init_trade_graph(normalized_close), normalize)
-        for t in trades:
-            if t:
-                t['entry_date'] = str(t['entry_date'])
-        return JSONResponse(content={"trades": trades, "stats": stats, "graph_data": graph})
+    # if data.customized_buy_signal and data.customized_sell_signal:
+    #     buy_security_group = []
+    #     sell_security_group = []
+    #     for s in data.customized_buy_signal:
+    #         buy_security_group.append(get_security_group(db, s.security_group, "user.id"))
+    #     for s in data.customized_sell_signal:
+    #         sell_security_group.append(get_security_group(db, s.security_group, "user.id"))
+    #
+    #     # check if buy and sell security groups have more than 1 security group and if each security group has more than 1 security
+    #     normalize = (len(buy_security_group) > 1 or len(sell_security_group) > 1) or (len(
+    #         buy_security_group[0]) > 1 or len(sell_security_group[0]) > 1)
+    #
+    #
+    #     user_data.set_user_data_by_key("user.id", 'buy_security_group', buy_security_group)
+    #     user_data.set_user_data_by_key("user.id", 'sell_security_group', sell_security_group)
+    #     user_data.set_user_data_by_key("user.id", 'cash', 1000000)
+    #     customized_buy_signal, buy_keys, customized_sell_signal, sell_keys = customized_buy_sell_signal_for_backtest(
+    #         response, data)
+    #
+    #     cache_price_data(data_service, data.limit, data.resolution, buy_security_group)
+    #     cache_price_data(data_service, data.limit, data.resolution, sell_security_group)
+    #     init_cash, trades = get_trades(dates, customized_buy_signal, buy_keys, customized_sell_signal, sell_keys,
+    #                                    entries, exits, "user.id", lookback_size)
+    #     stats = get_stats(trades)
+    #     normalized_close = normalize_prices((close[lookback_size:])) if normalize else close[lookback_size:]
+    #     graph = create_trades_graph(trades, vbt.init_trade_graph(normalized_close), normalize)
+    #     for t in trades:
+    #         if t:
+    #             t['entry_date'] = str(t['entry_date'])
+    #     return JSONResponse(content={"trades": trades, "stats": stats, "graph_data": graph})
 
     res = run_portfolio(vbt, close, lookback_size)
 
