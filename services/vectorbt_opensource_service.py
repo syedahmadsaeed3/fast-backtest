@@ -77,9 +77,9 @@ class VectorbtService:
     def run_portfolio(self, close_list, init_cash, lookback_size, entries=None, exits=None):
         if not entries or not exits:
             entries, exits = self.get_entries_and_exits()
-        entries = entries[lookback_size:].copy()
-        exits = exits[lookback_size:].copy()
-        close_list = close_list[lookback_size:].copy()
+        # entries = entries[lookback_size:].copy()
+        # exits = exits[lookback_size:].copy()
+        # close_list = close_list[lookback_size:].copy()
         entries.index = close_list.index
         exits.index = close_list.index
         self.portfolio = vbt.Portfolio.from_signals(close=close_list, entries=entries, upon_long_conflict="Exit",
